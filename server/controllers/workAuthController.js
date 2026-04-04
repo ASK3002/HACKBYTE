@@ -72,6 +72,23 @@ export const startVerification = async (req, res) => {
       })
     }
 
+    // Create MongoDB record immediately when email is sent (status: pending)
+    try {
+      await VerifiedWorkAuth.create({
+        workAuthRecordId: record.id,
+        resumeId: record.resumeId || null,
+        candidateName: record.candidateName || '',
+        organizationName: record.organizationName || '',
+        pocPhone: record.pocPhone || '',
+        pocEmail: record.pocEmail || '',
+        verificationMethod: 'email',
+        finalStatus: 'pending',
+      })
+      logger.info(`💾 Pending record created in MongoDB for: ${record.id}`)
+    } catch (mongoErr) {
+      logger.error(`MongoDB create failed (non-critical): ${mongoErr.message}`)
+    }
+
     logger.info(`✅ Verification flow started for record: ${record.id}`)
 
     res.json({
@@ -165,9 +182,17 @@ export const handleVerification = async (req, res) => {
 
     logger.info(`✅ Verification ${finalStatus} for record: ${id}`)
 
-    // If authenticated → persist to MongoDB
-    if (finalStatus === 'correct') {
-      try {
+    // Persist outcome to MongoDB — update the existing pending record
+    try {
+      const updated = await VerifiedWorkAuth.findOneAndUpdate(
+        { workAuthRecordId: id },
+        { finalStatus: finalStatus },
+        { new: true, sort: { createdAt: -1 } }
+      )
+      if (updated) {
+        logger.info(`💾 MongoDB record updated (${finalStatus}) for: ${id}`)
+      } else {
+        // Fallback: create if somehow not found
         const freshRecord = await workAuthModel.getById(id)
         await VerifiedWorkAuth.create({
           workAuthRecordId: id,
@@ -177,12 +202,12 @@ export const handleVerification = async (req, res) => {
           pocPhone: freshRecord?.pocPhone || '',
           pocEmail: freshRecord?.pocEmail || '',
           verificationMethod: 'email',
-          finalStatus: 'correct',
+          finalStatus: finalStatus,
         })
-        logger.info(`✅ Verified record saved to MongoDB for record: ${id}`)
-      } catch (mongoErr) {
-        logger.error(`MongoDB save failed (non-critical): ${mongoErr.message}`)
+        logger.info(`💾 Fallback: new MongoDB record created (${finalStatus}) for: ${id}`)
       }
+    } catch (mongoErr) {
+      logger.error(`MongoDB update failed (non-critical): ${mongoErr.message}`)
     }
 
     // Return HTML response
@@ -259,7 +284,11 @@ export const checkVerification = async (req, res) => {
 
     return res.json({
       success: true,
-      status: record.finalStatus === 'correct' ? 'verified' : 'rejected',
+      status: record.finalStatus === 'correct'
+        ? 'verified'
+        : record.finalStatus === 'rejected'
+        ? 'rejected'
+        : 'pending',
       record: {
         candidateName: record.candidateName,
         organizationName: record.organizationName,

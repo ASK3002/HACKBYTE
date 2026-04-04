@@ -37,19 +37,25 @@ export function WorkAuthBadge({ resumeId, showDetail = false }) {
   const configs = {
     verified: {
       icon: <ShieldCheck className="w-4 h-4" />,
-      label: 'Work Experience Verified',
+      label: '✅ Work Experience Accepted & Verified',
       bg: 'bg-emerald-50 border-emerald-200 text-emerald-700',
       dot: 'bg-emerald-500',
     },
     rejected: {
       icon: <ShieldOff className="w-4 h-4" />,
-      label: 'Verification Rejected',
+      label: '❌ Work Experience Not Accepted',
       bg: 'bg-red-50 border-red-200 text-red-700',
       dot: 'bg-red-500',
     },
+    pending: {
+      icon: <Shield className="w-4 h-4" />,
+      label: '⏳ Email Sent — Awaiting POC Response',
+      bg: 'bg-yellow-50 border-yellow-200 text-yellow-700',
+      dot: 'bg-yellow-400',
+    },
     not_verified: {
       icon: <Shield className="w-4 h-4" />,
-      label: 'Work Experience Not Yet Verified',
+      label: '📭 Verification Email Not Yet Sent',
       bg: 'bg-gray-50 border-gray-200 text-gray-500',
       dot: 'bg-gray-400',
     },

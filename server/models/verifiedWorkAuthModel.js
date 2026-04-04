@@ -33,8 +33,8 @@ const verifiedWorkAuthSchema = new mongoose.Schema(
     },
     finalStatus: {
       type: String,
-      enum: ['correct', 'rejected'],
-      required: true,
+      enum: ['pending', 'correct', 'rejected'],
+      default: 'pending',
     },
 
     // Timestamps handled by Mongoose
