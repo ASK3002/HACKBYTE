@@ -41,6 +41,15 @@ export class TrustEngine {
       })
       console.log('🧠 AI analysis complete')
 
+      // Analyze random repository from user's GitHub profile (if GitHub data exists)
+      let randomRepoAnalysis = null
+      if (githubData && githubData.repos && githubData.repos.length > 0) {
+        console.log('📦 Analyzing random GitHub repository from user profile...')
+        randomRepoAnalysis = await this.analyzeRandomRepository(githubData)
+      } else {
+        console.log('⏭️ Skipping repository analysis (no GitHub profile provided)')
+      }
+
       const scores = this.calculateScores(
         resumeInfo,
         githubData,
@@ -68,12 +77,103 @@ export class TrustEngine {
         rawAnalysis: aiAnalysis,
         timestamp: new Date().toISOString(),
         selectedSkills: skillsToAnalyze,
+        randomRepoAnalysis,
       }
 
       return trustScore
     } catch (error) {
       console.error('❌ TrustEngine error:', error)
       throw error
+    }
+  }
+
+  async analyzeRandomRepository(githubData) {
+    try {
+      // Check if GitHub data exists and has repositories
+      if (!githubData || !githubData.repos || githubData.repos.length === 0) {
+        console.warn('⚠️ No repositories found in user GitHub profile')
+        return {
+          status: 'no_repos',
+          message: 'User has no public repositories to analyze',
+        }
+      }
+
+      // Select a random repository from the user's repos
+      const randomIndex = Math.floor(Math.random() * githubData.repos.length)
+      const randomRepo = githubData.repos[randomIndex]
+
+      console.log(`🔍 Selected random repo from user profile: ${githubData.username}/${randomRepo.name}`)
+      
+      // Extract code from the selected repository
+      console.log('📂 Extracting code from user repository...')
+      const codeFiles = await githubService.extractRepositoryCode(
+        githubData.username,
+        randomRepo.name
+      )
+
+      if (codeFiles.length === 0) {
+        console.warn('⚠️ No code files extracted from repository')
+        return {
+          repository: {
+            name: randomRepo.name,
+            owner: githubData.username,
+            url: randomRepo.url,
+            description: randomRepo.description,
+            language: randomRepo.language,
+          },
+          status: 'no_code_found',
+          filesAnalyzed: 0,
+        }
+      }
+
+      console.log(`✅ Extracted ${codeFiles.length} code files`)
+
+      // Review code quality with Gemini
+      console.log('🤖 Reviewing code quality with Gemini...')
+      const codeReview = await geminiService.reviewCodeQuality(codeFiles, {
+        name: randomRepo.name,
+        owner: githubData.username,
+        url: randomRepo.url,
+        description: randomRepo.description,
+        language: randomRepo.language,
+      })
+      
+      console.log('✅ Code review completed')
+
+      const result = {
+        repository: {
+          name: randomRepo.name,
+          owner: githubData.username,
+          url: randomRepo.url,
+          description: randomRepo.description,
+          language: randomRepo.language,
+          createdAt: randomRepo.created_at,
+          updatedAt: randomRepo.updated_at,
+        },
+        filesAnalyzed: codeFiles.length,
+        fileNames: codeFiles.map(f => ({ name: f.name, language: f.language })),
+        codeReview,
+        timestamp: new Date().toISOString(),
+      }
+
+      console.log('\n' + '='.repeat(60))
+      console.log('📊 USER REPOSITORY ANALYSIS:')
+      console.log('='.repeat(60))
+      console.log(`Repository: ${githubData.username}/${randomRepo.name}`)
+      console.log(`Language: ${randomRepo.language || 'N/A'}`)
+      console.log(`URL: ${randomRepo.url}`)
+      console.log(`Files Analyzed: ${codeFiles.length}`)
+      console.log('Code Review Summary:')
+      console.log(JSON.stringify(codeReview, null, 2))
+      console.log('='.repeat(60) + '\n')
+
+      return result
+    } catch (error) {
+      console.error('❌ User repository analysis error:', error.message)
+      return {
+        status: 'error',
+        error: error.message,
+      }
     }
   }
 
