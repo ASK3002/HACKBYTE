@@ -1,6 +1,7 @@
 // components/UploadResume.jsx
-import { useState, useRef, useEffect } from 'react'
-import { Upload, Loader2, X } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Upload, Loader2, X, Github, CheckCircle } from 'lucide-react'
+import { trustAPI } from '../services/api'
 
 // Available skills organized by category
 const SKILLS_BY_CATEGORY = {
@@ -40,15 +41,54 @@ export function UploadResume({ onAnalyze }) {
   const [isLoading, setIsLoading] = useState(false)
   const [resumeFile, setResumeFile] = useState(null)
   const [githubUsername, setGithubUsername] = useState('')
+  const [githubDetecting, setGithubDetecting] = useState(false)
+  const [githubAutoFilled, setGithubAutoFilled] = useState(false)
   const [selectedSkills, setSelectedSkills] = useState(DEFAULT_SKILLS)
   const [expandedCategory, setExpandedCategory] = useState(null)
   const fileInputRef = useRef(null)
+  const [isDragging, setIsDragging] = useState(false)
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setResumeFile(file)
+    if (file) await processFile(file)
+  }
+
+  const processFile = async (file) => {
+    setResumeFile(file)
+    setGithubAutoFilled(false)
+
+    // Auto-detect GitHub username from resume
+    setGithubDetecting(true)
+    try {
+      const data = await trustAPI.uploadResumeOnly(file)
+      const detectedGithub = data?.contactInfo?.github
+      if (detectedGithub) {
+        setGithubUsername(detectedGithub)
+        setGithubAutoFilled(true)
+      }
+    } catch (err) {
+      // Silent fail — user can fill manually
+      console.warn('GitHub auto-detect failed:', err.message)
+    } finally {
+      setGithubDetecting(false)
     }
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = async (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) await processFile(file)
   }
 
   const toggleSkill = (skill) => {
@@ -117,12 +157,29 @@ export function UploadResume({ onAnalyze }) {
           </label>
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-blue-300 rounded-lg p-8 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-lg p-8 cursor-pointer transition ${
+              isDragging
+                ? 'border-blue-500 bg-blue-50 scale-[1.01]'
+                : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
+            }`}
           >
             <div className="flex flex-col items-center gap-2">
-              <Upload className="w-8 h-8 text-blue-500" />
+              {githubDetecting ? (
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+              ) : (
+                <Upload className="w-8 h-8 text-blue-500" />
+              )}
               <p className="text-gray-600 font-medium">
-                {resumeFile ? resumeFile.name : 'Click to upload or drag resume (PDF/TXT)'}
+                {githubDetecting
+                  ? 'Parsing resume...'
+                  : resumeFile
+                  ? resumeFile.name
+                  : isDragging
+                  ? 'Drop it here!'
+                  : 'Click to upload or drag resume (PDF/TXT)'}
               </p>
             </div>
             <input
@@ -140,16 +197,42 @@ export function UploadResume({ onAnalyze }) {
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             GitHub Username
           </label>
-          <input
-            type="text"
-            value={githubUsername}
-            onChange={(e) => setGithubUsername(e.target.value)}
-            placeholder="e.g., torvalds"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="mt-1 text-sm text-gray-500">
-            Leave empty to skip GitHub analysis
-          </p>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <Github className="w-4 h-4" />
+            </span>
+            <input
+              type="text"
+              value={githubUsername}
+              onChange={(e) => {
+                setGithubUsername(e.target.value)
+                setGithubAutoFilled(false)
+              }}
+              placeholder="e.g., torvalds"
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {githubDetecting && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+              </span>
+            )}
+            {!githubDetecting && githubAutoFilled && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              </span>
+            )}
+          </div>
+          {githubDetecting && (
+            <p className="mt-1 text-sm text-blue-500">Detecting GitHub username from resume...</p>
+          )}
+          {!githubDetecting && githubAutoFilled && (
+            <p className="mt-1 text-sm text-green-600 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" /> Auto-filled from resume — you can edit if needed
+            </p>
+          )}
+          {!githubDetecting && !githubAutoFilled && (
+            <p className="mt-1 text-sm text-gray-500">Leave empty to skip GitHub analysis</p>
+          )}
         </div>
 
         {/* Skills Selection */}

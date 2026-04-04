@@ -44,6 +44,29 @@ export const trustAPI = {
     }
   },
 
+  // Upload resume only for contact info extraction (used to auto-fill GitHub field)
+  uploadResumeOnly: async (resumeFile) => {
+    try {
+      const formData = new FormData()
+      formData.append('resume', resumeFile)
+
+      const uploadRes = await axios.post(
+        `${API_BASE}/trust/upload-resume`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      )
+
+      return uploadRes.data.data
+    } catch (error) {
+      console.error('Resume upload error:', error)
+      throw error
+    }
+  },
+
   // Fetch GitHub data
   getGitHubData: async (username) => {
     try {

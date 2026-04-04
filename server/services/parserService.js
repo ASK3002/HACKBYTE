@@ -62,14 +62,37 @@ export class ParserService {
     const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/
     const linkedinRegex = /linkedin\.com\/in\/[\w-]+/i
 
+    // GitHub extraction: matches github.com/username URLs or labeled "GitHub: username" fields
+    const githubUrlRegex = /github\.com\/([\w-]+)/i
+    const githubLabelRegex = /github[:\s]+([\w-]+)/i
+    const githubAtRegex = /@([\w-]+)\s*(?:github|gh)/i
+
     const email = text.match(emailRegex)?.[0]
     const phone = text.match(phoneRegex)?.[0]
     const linkedin = text.match(linkedinRegex)?.[0]
+
+    // Try URL first, then label, then @handle near 'github'
+    let github = null
+    const urlMatch = text.match(githubUrlRegex)
+    if (urlMatch) {
+      github = urlMatch[1]
+    } else {
+      const labelMatch = text.match(githubLabelRegex)
+      if (labelMatch) {
+        github = labelMatch[1]
+      } else {
+        const atMatch = text.match(githubAtRegex)
+        if (atMatch) {
+          github = atMatch[1]
+        }
+      }
+    }
 
     return {
       email,
       phone,
       linkedin,
+      github,
     }
   }
 
