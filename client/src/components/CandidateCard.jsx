@@ -16,6 +16,14 @@ export function CandidateCard({ candidate, onClick }) {
     }
   }
 
+  // ✅ Fix mapping once
+const rawScore =
+  candidate.trustScore > 0
+    ? candidate.trustScore
+    : candidate.trust_score
+
+const trustScore = Number(rawScore) || 0
+// console.log("FULL candidate object:", candidate)
   return (
     <div
       onClick={onClick}
@@ -41,9 +49,10 @@ export function CandidateCard({ candidate, onClick }) {
             Trust Score
           </p>
           <p className="text-2xl font-bold text-gray-800">
-            {Math.round(candidate.trustScore)}/100
+            {Math.round(trustScore)}/100
           </p>
         </div>
+
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-wide">
             Red Flags

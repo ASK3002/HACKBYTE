@@ -101,6 +101,16 @@ class SpacetimeClient {
     return obj
   }
 
+  _parseCandidate(candidate) {
+    if (!candidate) return null
+    return {
+      ...candidate,
+      trustScore: typeof candidate.trustScore === 'string' ? parseFloat(candidate.trustScore) : (candidate.trustScore || 0),
+      flags: typeof candidate.flags === 'string' ? JSON.parse(candidate.flags) : (candidate.flags || []),
+      breakdown: typeof candidate.breakdown === 'string' ? JSON.parse(candidate.breakdown) : (candidate.breakdown || {}),
+    }
+  }
+
   async _syncCandidates() {
     try {
       const result = await this._querySql('SELECT * FROM candidates')
@@ -175,25 +185,26 @@ class SpacetimeClient {
     if (this.isConnected) {
       await this._syncCandidates()
     }
-    return Array.from(this.candidates.values())
+    return Array.from(this.candidates.values()).map(candidate => this._parseCandidate(candidate))
   }
 
   async getCandidateById(id) {
+    let candidate = null
     if (this.isConnected) {
       try {
         const result = await this._querySql(`SELECT * FROM candidates WHERE id = '${id}'`)
         if (result?.rows?.length) {
-          const candidate = this._rowToObject(result.rows[0], result.schema)
+          candidate = this._rowToObject(result.rows[0], result.schema)
           if (candidate) {
             this.candidates.set(id, candidate)
-            return candidate
           }
         }
       } catch (err) {
         console.warn('SpacetimeDB query failed, using cache:', err.message)
       }
     }
-    return this.candidates.get(id) ?? null
+    candidate = candidate || this.candidates.get(id)
+    return this._parseCandidate(candidate)
   }
 
   disconnect() {

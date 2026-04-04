@@ -7,7 +7,7 @@ import { BreakdownBar } from '../components/BreakdownBar'
 import { FlagsPanel } from '../components/FlagsPanel'
 import { ExplanationPanel } from '../components/ExplanationPanel'
 import { trustAPI } from '../services/api'
-import { Loader2, Phone } from 'lucide-react'
+import { Loader2, Phone, Users } from 'lucide-react'
 import logo from '../assets/images.png' // ✅ added logo import
 
 export function Home() {
@@ -63,13 +63,22 @@ export function Home() {
 </div>
             </div>
 
-            <button
-              onClick={() => navigate('/work-auth')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2 mt-5"
-            >
-              <Phone className="w-4 h-4" />
-              WorkExperience Auth
-            </button>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2"
+              >
+                <Users className="w-4 h-4" />
+                All Candidates
+              </button>
+              <button
+                onClick={() => navigate('/work-auth')}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2"
+              >
+                <Phone className="w-4 h-4" />
+                WorkExperience Auth
+              </button>
+            </div>
           </div>
         </div>
       </div>

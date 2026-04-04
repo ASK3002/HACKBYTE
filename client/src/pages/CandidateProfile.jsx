@@ -83,9 +83,9 @@ export function CandidateProfile() {
           {/* Trust Score Card */}
           <div className="md:col-span-1">
             <TrustScoreCard
-              score={candidate.trustScore}
-              verdict={candidate.verdict}
-            />
+          score={candidate.trust_score}
+          verdict={candidate.verdict}
+/>
           </div>
 
           {/* Breakdown Scores */}

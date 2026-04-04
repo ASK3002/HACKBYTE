@@ -109,7 +109,12 @@ export class TrustEngine {
       const codeFiles = await githubService.extractRepositoryCode(
         githubData.username,
         randomRepo.name
-      )
+      ).filter(file => file.content.length < 500)
+  .slice(0, 3)
+  .map(file => ({
+    ...file,
+    content: file.content.slice(0, 200)
+  }))
 
       if (codeFiles.length === 0) {
         console.warn('⚠️ No code files extracted from repository')

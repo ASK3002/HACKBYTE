@@ -1,7 +1,29 @@
-// components/TrustScoreCard.jsx
 import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
 
-export function TrustScoreCard({ score, verdict }) {
+export function TrustScoreCard({ score, trust_score, verdict }) {
+  // 🔥 Support both props (fix for common DB mismatch issue)
+  const rawScore = score ?? trust_score
+
+  // 🧪 Debug (remove later)
+  console.log("TrustScoreCard received:", { score, trust_score, rawScore, verdict })
+
+  // ✅ Safe number conversion
+  let numScore = Number(rawScore)
+
+  if (!Number.isFinite(numScore)) {
+    console.warn("Invalid score received:", rawScore)
+    numScore = 0
+  }
+
+  // ✅ Clamp between 0–100
+  const validScore = Math.min(100, Math.max(0, numScore))
+
+  console.log("TrustScoreCard received:", {
+  score,
+  trust_score,
+  verdict,
+  type: typeof score
+})
   const getVerdictColor = (verdict) => {
     switch (verdict) {
       case 'Trusted':
@@ -35,7 +57,7 @@ export function TrustScoreCard({ score, verdict }) {
     }
   }
 
-  const verdictStyle = getVerdictColor(verdict)
+  const verdictStyle = getVerdictColor(verdict || 'Unknown')
   const VerdictIcon = verdictStyle.icon
 
   return (
@@ -43,13 +65,13 @@ export function TrustScoreCard({ score, verdict }) {
       <div className="flex items-center gap-4 mb-4">
         <VerdictIcon className={`w-8 h-8 ${verdictStyle.text}`} />
         <h2 className={`text-2xl font-bold ${verdictStyle.text}`}>
-          {verdict}
+          {verdict || 'Unknown'}
         </h2>
       </div>
 
       <div className="mb-6">
         <div className="text-5xl font-bold text-gray-700">
-          {Math.round(score)}
+          {Math.round(validScore)}
           <span className="text-2xl text-gray-500">/100</span>
         </div>
       </div>
@@ -60,7 +82,9 @@ export function TrustScoreCard({ score, verdict }) {
             ? '✅ Candidate appears genuine and consistent'
             : verdict === 'Suspicious'
               ? '⚠️ Some inconsistencies detected - verify before proceeding'
-              : '❌ Multiple red flags - do not proceed without investigation'}
+              : verdict === 'High Risk'
+                ? '❌ Multiple red flags - do not proceed without investigation'
+                : 'ℹ️ No verdict available'}
         </p>
       </div>
     </div>
