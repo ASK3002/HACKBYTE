@@ -162,18 +162,12 @@ export function WorkExperienceAuth() {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <h1 className="text-4xl font-bold text-gray-900">
-            📞 Work Experience Authentication
+            Work Experience Authentication
           </h1>
           <p className="text-gray-600 mt-2">
-            Verify candidate work experience through phone call and email
+            Verify candidate  work experience through phone call and email
           </p>
-          {analyzedResumeId && (
-            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
-              <p className="text-sm text-blue-700">
-                <strong>Resume ID:</strong> {analyzedResumeId}
-              </p>
-            </div>
-          )}
+          
         </div>
       </div>
 
@@ -287,7 +281,7 @@ export function WorkExperienceAuth() {
                   </>
                 ) : (
                   <>
-                    📞 Authenticate
+                    Authenticate
                   </>
                 )}
               </button>
