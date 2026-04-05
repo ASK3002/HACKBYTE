@@ -43,6 +43,11 @@ export function UploadResume({ onAnalyze }) {
   const [githubUsername, setGithubUsername] = useState('')
   const [githubDetecting, setGithubDetecting] = useState(false)
   const [githubAutoFilled, setGithubAutoFilled] = useState(false)
+  
+  const [codeforcesHandle, setCodeforcesHandle] = useState('')
+  const [cfDetecting, setCfDetecting] = useState(false)
+  const [cfAutoFilled, setCfAutoFilled] = useState(false)
+
   const [selectedSkills, setSelectedSkills] = useState(DEFAULT_SKILLS)
   const [expandedCategory, setExpandedCategory] = useState(null)
   const fileInputRef = useRef(null)
@@ -56,21 +61,31 @@ export function UploadResume({ onAnalyze }) {
   const processFile = async (file) => {
     setResumeFile(file)
     setGithubAutoFilled(false)
+    setCfAutoFilled(false)
 
     // Auto-detect GitHub username from resume
     setGithubDetecting(true)
+    setCfDetecting(true)
     try {
       const data = await trustAPI.uploadResumeOnly(file)
+      
       const detectedGithub = data?.contactInfo?.github
       if (detectedGithub) {
         setGithubUsername(detectedGithub)
         setGithubAutoFilled(true)
+      }
+
+      const detectedCf = data?.contactInfo?.codeforces
+      if (detectedCf) {
+        setCodeforcesHandle(detectedCf)
+        setCfAutoFilled(true)
       }
     } catch (err) {
       // Silent fail — user can fill manually
       console.warn('GitHub auto-detect failed:', err.message)
     } finally {
       setGithubDetecting(false)
+      setCfDetecting(false)
     }
   }
 
@@ -138,7 +153,7 @@ export function UploadResume({ onAnalyze }) {
 
     setIsLoading(true)
     try {
-      await onAnalyze(resumeFile, githubUsername, selectedSkills)
+      await onAnalyze(resumeFile, githubUsername, selectedSkills, codeforcesHandle)
     } catch (error) {
       console.error('Analysis failed:', error)
       alert('Analysis failed. Please try again.')
@@ -232,6 +247,49 @@ export function UploadResume({ onAnalyze }) {
           )}
           {!githubDetecting && !githubAutoFilled && (
             <p className="mt-1 text-sm text-gray-500">Leave empty to skip GitHub analysis</p>
+          )}
+        </div>
+
+        {/* Codeforces Handle */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Codeforces Handle
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
+              CF
+            </span>
+            <input
+              type="text"
+              value={codeforcesHandle}
+              onChange={(e) => {
+                setCodeforcesHandle(e.target.value)
+                setCfAutoFilled(false)
+              }}
+              placeholder="e.g., tourist"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {cfDetecting && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+              </span>
+            )}
+            {!cfDetecting && cfAutoFilled && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              </span>
+            )}
+          </div>
+          {cfDetecting && (
+            <p className="mt-1 text-sm text-blue-500">Detecting Codeforces handle from resume...</p>
+          )}
+          {!cfDetecting && cfAutoFilled && (
+            <p className="mt-1 text-sm text-green-600 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" /> Auto-filled from resume — you can edit if needed
+            </p>
+          )}
+          {!cfDetecting && !cfAutoFilled && (
+            <p className="mt-1 text-sm text-gray-500">Leave empty to skip Codeforces verification</p>
           )}
         </div>
 

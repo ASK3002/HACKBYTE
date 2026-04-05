@@ -88,12 +88,55 @@ export function CandidateProfile() {
       <div className="max-w-7xl mx-auto px-4 py-12 space-y-8">
         {/* Results Grid */}
         <div className="grid md:grid-cols-3 gap-8">
-          {/* Trust Score Card */}
-          <div className="md:col-span-1">
+          {/* Trust Score Card & Extra Verifications */}
+          <div className="md:col-span-1 space-y-6">
             <TrustScoreCard
-          score={candidate.trust_score}
-          verdict={candidate.verdict}
-/>
+              score={candidate.trust_score}
+              verdict={candidate.verdict}
+            />
+
+            {/* Codeforces Verification Card */}
+            {candidate.codeforcesData && (
+              <div className="bg-white rounded-lg shadow p-6 border-t-4 border-blue-500">
+                <div className="flex items-center gap-2 mb-4">
+                  <h3 className="font-semibold text-lg text-gray-800">
+                    Codeforces
+                  </h3>
+                {/* Verified icon if rank is legit, else warn */}
+                {(!candidate.cfClaimedRank || 
+                  !candidate.flags?.some(f => f.includes('Codeforces'))) ? (
+                  <span className="text-green-500 text-sm font-medium flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-full ring-1 ring-green-200">
+                    ✓ Verified
+                  </span>
+                ) : (
+                  <span className="text-red-500 text-sm font-medium flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-full ring-1 ring-red-200">
+                    🚩 Mismatch
+                  </span>
+                )}
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                Handle: <a href={`https://codeforces.com/profile/${candidate.codeforcesData.handle}`} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline">{candidate.codeforcesData.handle}</a>
+              </p>
+              
+              {(!candidate.cfClaimedRank || !candidate.flags?.some(f => f.includes('Codeforces'))) ? (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                    <span className="text-sm text-gray-500">Max Rank</span>
+                    <span className="font-medium capitalize">{candidate.codeforcesData.maxRank || 'Unknown'}</span>
+                  </div>
+                  <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                    <span className="text-sm text-gray-500">Max Rating</span>
+                    <span className="font-medium">{candidate.codeforcesData.maxRating || 'N/A'}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-red-50 text-red-700 p-3 rounded text-sm">
+                  <b>Mismatch detected!</b><br/>Claimed rank <b>{candidate.cfClaimedRank}</b> does not match actual maximum rank <b>{candidate.codeforcesData.maxRank}</b>.
+                </div>
+              )}
+            </div>
+            )}
           </div>
 
           {/* Breakdown Scores */}

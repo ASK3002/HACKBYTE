@@ -14,7 +14,7 @@ export function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const handleAnalyze = async (resumeFile, githubUsername, selectedSkills) => {
+  const handleAnalyze = async (resumeFile, githubUsername, selectedSkills, codeforcesHandle) => {
     setIsLoading(true)
     setError(null)
 
@@ -23,6 +23,7 @@ export function Home() {
         resumeFile,
         githubUsername,
         selectedSkills,
+        codeforcesHandle,
       )
       setResult(analysis)
     } catch (err) {
@@ -60,12 +61,55 @@ export function Home() {
 
             {/* Results Grid */}
             <div className="grid md:grid-cols-3 gap-8">
-              {/* Trust Score Card */}
-              <div className="md:col-span-1">
+              {/* Trust Score Card & Extra Verifications */}
+              <div className="md:col-span-1 space-y-6">
                 <TrustScoreCard
                   score={result.trustScore}
                   verdict={result.verdict}
                 />
+
+                {/* Codeforces Verification Card */}
+                {result.codeforcesData && (
+                  <div className="bg-white rounded-lg shadow p-6 border-t-4 border-blue-500">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="font-semibold text-lg text-gray-800">
+                        Codeforces
+                      </h3>
+                      {/* Verified icon if rank is legit, else warn */}
+                      {(!result.cfClaimedRank || 
+                        !result.flags?.some(f => f.includes('Codeforces'))) ? (
+                        <span className="text-green-500 text-sm font-medium flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-full ring-1 ring-green-200">
+                          ✓ Verified
+                        </span>
+                      ) : (
+                        <span className="text-red-500 text-sm font-medium flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-full ring-1 ring-red-200">
+                          🚩 Mismatch
+                        </span>
+                      )}
+                    </div>
+                    
+                    <p className="text-sm text-gray-600 mb-4">
+                      Handle: <a href={`https://codeforces.com/profile/${result.codeforcesData.handle}`} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline">{result.codeforcesData.handle}</a>
+                    </p>
+                    
+                    {(!result.cfClaimedRank || !result.flags?.some(f => f.includes('Codeforces'))) ? (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                          <span className="text-sm text-gray-500">Max Rank</span>
+                          <span className="font-medium capitalize">{result.codeforcesData.maxRank || 'Unknown'}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                          <span className="text-sm text-gray-500">Max Rating</span>
+                          <span className="font-medium">{result.codeforcesData.maxRating || 'N/A'}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-red-50 text-red-700 p-3 rounded text-sm">
+                        <b>Mismatch detected!</b><br/>Claimed rank <b>{result.cfClaimedRank}</b> does not match actual maximum rank <b>{result.codeforcesData.maxRank}</b>.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Breakdown Scores */}

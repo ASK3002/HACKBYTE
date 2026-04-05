@@ -1,6 +1,8 @@
 // trustEngine.js - Core TrustScore calculation engine
 import { geminiService } from './geminiService.js'
 import { githubService } from './githubService.js'
+import { codeforcesService } from './codeforcesService.js'
+import { parserService } from './parserService.js'
 import { getDefaultSkills } from '../config/skillsConfig.js'
 
 export class TrustEngine {
@@ -12,11 +14,12 @@ export class TrustEngine {
     }
   }
 
-  async analyzeCandidateProfile(resumeData, githubUsername, selectedSkills = []) {
+  async analyzeCandidateProfile(resumeData, githubUsername, selectedSkills = [], codeforcesHandle = null) {
     try {
       console.log('🔍 Starting TrustScore analysis...')
       console.log('   Received selectedSkills:', selectedSkills)
       console.log('   Type:', Array.isArray(selectedSkills) ? 'array' : typeof selectedSkills)
+      console.log('   Codeforces Handle:', codeforcesHandle)
 
       // Use selected skills, or default if none provided
       const skillsToAnalyze = selectedSkills && selectedSkills.length > 0 ? selectedSkills : getDefaultSkills()
@@ -29,10 +32,23 @@ export class TrustEngine {
       console.log('📄 Resume parsed:', Object.keys(resumeInfo))
       console.log('   Found skills in resume:', resumeInfo.skills)
 
+      // CF Rank extraction from text
+      const contactInfo = parserService.extractContactInfo(resumeData)
+      const cfClaimedRank = contactInfo.cfClaimedRank
+      if (cfClaimedRank) {
+        console.log('   Claimed Codeforces Rank:', cfClaimedRank)
+      }
+
       let githubData = {}
       if (githubUsername) {
         githubData = await githubService.fetchUserData(githubUsername)
         console.log('🐙 GitHub data fetched')
+      }
+
+      let codeforcesData = null
+      if (codeforcesHandle) {
+        codeforcesData = await codeforcesService.fetchUserData(codeforcesHandle)
+        console.log('🏆 Codeforces data fetched')
       }
 
       const aiAnalysis = await geminiService.analyzeCandidate({
@@ -40,6 +56,16 @@ export class TrustEngine {
         github: githubData,
       })
       console.log('🧠 AI analysis complete')
+
+      // Codeforces Rank Verification
+      let cfVerification = null
+      if (codeforcesData) {
+        cfVerification = codeforcesService.verifyRank(cfClaimedRank, codeforcesData)
+        if (cfVerification.verified === false && cfVerification.flag) {
+          if (!aiAnalysis.suspicionFlags) aiAnalysis.suspicionFlags = []
+          aiAnalysis.suspicionFlags.push(cfVerification.flag)
+        }
+      }
 
       // CODE FILE VALIDATOR — commented out for now
       // let randomRepoAnalysis = null
@@ -67,6 +93,9 @@ export class TrustEngine {
       const explanation = this.generateExplanation(
         scores,
         aiAnalysis,
+        codeforcesData,
+        cfClaimedRank,
+        cfVerification
       )
 
       const trustScore = {
@@ -84,6 +113,8 @@ export class TrustEngine {
         timestamp: new Date().toISOString(),
         selectedSkills: skillsToAnalyze,
         randomRepoAnalysis,
+        codeforcesData,
+        cfClaimedRank,
       }
 
       return trustScore
@@ -354,7 +385,7 @@ export class TrustEngine {
     return 'Needs Review'
   }
 
-  generateExplanation(scores, aiAnalysis) {
+  generateExplanation(scores, aiAnalysis, codeforcesData, cfClaimedRank, cfVerification) {
     let explanation = ''
 
     if (scores.skills >= 75) {
@@ -383,6 +414,18 @@ export class TrustEngine {
 
     if (aiAnalysis.reasoning) {
       explanation += `\n\n🧠 AI Analysis: ${aiAnalysis.reasoning}`
+    }
+
+    if (codeforcesData) {
+      explanation += `\n\n🏆 Codeforces Verification:\n- Handle: ${codeforcesData.handle}\n- Actual Max Rank: ${codeforcesData.maxRank || 'Unknown'}\n- Max Rating: ${codeforcesData.maxRating || 'N/A'}`
+      if (cfClaimedRank) {
+        explanation += `\n- Resume Claimed Rank: ${cfClaimedRank}`
+        if (cfVerification && cfVerification.verified === false) {
+          explanation += `\n- 🚩 Inconsistency: ${cfVerification.flag}`
+        } else if (cfVerification && cfVerification.verified === true) {
+          explanation += `\n- ✓ Status: Rank Consistency Verified`
+        }
+      }
     }
 
     return explanation

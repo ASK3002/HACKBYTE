@@ -12,7 +12,7 @@ const api = axios.create({
 
 export const trustAPI = {
   // Upload and analyze resume
-  uploadAndAnalyze: async (resumeFile, githubUsername, selectedSkills = []) => {
+  uploadAndAnalyze: async (resumeFile, githubUsername, selectedSkills = [], codeforcesHandle = '') => {
     try {
       const formData = new FormData()
       formData.append('resume', resumeFile)
@@ -35,6 +35,7 @@ export const trustAPI = {
         resumeText,
         githubUsername,
         selectedSkills,
+        codeforcesHandle,
       })
 
       return analysisRes.data.data
@@ -114,12 +115,13 @@ export const trustAPI = {
   },
 
   // Direct analyze with resume text
-  analyze: async (resumeText, githubUsername, selectedSkills = []) => {
+  analyze: async (resumeText, githubUsername, selectedSkills = [], codeforcesHandle = '') => {
     try {
       const res = await api.post('/trust/analyze', {
         resumeText,
         githubUsername,
         selectedSkills,
+        codeforcesHandle,
       })
       return res.data.data
     } catch (error) {

@@ -67,6 +67,11 @@ export class ParserService {
     const githubLabelRegex = /github[:\s]+([\w-]+)/i
     const githubAtRegex = /@([\w-]+)\s*(?:github|gh)/i
 
+    // Codeforces handle extraction
+    const cfUrlRegex = /codeforces\.com\/profile\/([\w-]+)/i
+    const cfLabelRegex = /codeforces[:\s]+([\w-]+)/i
+    const cfAtRegex = /@([\w-]+)\s*(?:codeforces|cf)/i
+
     const email = text.match(emailRegex)?.[0]
     const phone = text.match(phoneRegex)?.[0]
     const linkedin = text.match(linkedinRegex)?.[0]
@@ -88,12 +93,80 @@ export class ParserService {
       }
     }
 
+    // Extract Codeforces handle
+    let codeforces = null
+    const cfUrlMatch = text.match(cfUrlRegex)
+    if (cfUrlMatch) {
+      codeforces = cfUrlMatch[1]
+    } else {
+      const cfLabelMatch = text.match(cfLabelRegex)
+      if (cfLabelMatch) {
+        codeforces = cfLabelMatch[1]
+      } else {
+        const cfAtMatch = text.match(cfAtRegex)
+        if (cfAtMatch) {
+          codeforces = cfAtMatch[1]
+        }
+      }
+    }
+
+    // Extract claimed Codeforces rank from resume text
+    const cfClaimedRank = this.extractCodeforcesClaimedRank(text)
+
     return {
       email,
       phone,
       linkedin,
       github,
+      codeforces,
+      cfClaimedRank,
     }
+  }
+
+  /**
+   * Looks for Codeforces rank keywords near the word "codeforces" in resume text.
+   * Ranks searched (case-insensitive): Legendary Grandmaster, International Grandmaster,
+   * Grandmaster, International Master, Master, Candidate Master, Expert, Specialist, Pupil, Newbie
+   */
+  extractCodeforcesClaimedRank(text) {
+    if (!text) return null
+    // Ordered longest-first to avoid partial matches (e.g. "Grandmaster" before "Master")
+    const CF_RANKS = [
+      'legendary grandmaster',
+      'international grandmaster',
+      'grandmaster',
+      'international master',
+      'candidate master',
+      'master',
+      'expert',
+      'specialist',
+      'pupil',
+      'newbie',
+    ]
+
+    const lowerText = text.toLowerCase()
+
+    // Strategy 1: rank keyword within ~80 chars of the word "codeforces"
+    const cfIdx = lowerText.indexOf('codeforces')
+    if (cfIdx !== -1) {
+      const window = lowerText.substring(Math.max(0, cfIdx - 80), cfIdx + 120)
+      for (const rank of CF_RANKS) {
+        if (window.includes(rank)) {
+          return rank
+        }
+      }
+    }
+
+    // Strategy 2: rank keyword anywhere in the resume (broad fallback — only if resume also mentions codeforces)
+    if (cfIdx !== -1) {
+      for (const rank of CF_RANKS) {
+        if (lowerText.includes(rank)) {
+          return rank
+        }
+      }
+    }
+
+    return null
   }
 
   extractSections(text) {

@@ -5,7 +5,7 @@ import { AVAILABLE_SKILLS } from '../config/skillsConfig.js'
 
 export const analyzeCandidateProfile = async (req, res) => {
   try {
-    const { resumeText, githubUsername, selectedSkills } = req.body
+    const { resumeText, githubUsername, selectedSkills, codeforcesHandle } = req.body
 
     if (!resumeText) {
       return res
@@ -17,12 +17,14 @@ export const analyzeCandidateProfile = async (req, res) => {
     console.log('📥 Received from frontend:')
     console.log('   selectedSkills:', selectedSkills)
     console.log('   selectedSkills length:', selectedSkills?.length)
+    console.log('   codeforcesHandle:', codeforcesHandle)
 
     // Perform analysis
     const trustScore = await trustEngine.analyzeCandidateProfile(
       resumeText,
       githubUsername,
       selectedSkills,
+      codeforcesHandle,
     )
 
     // Store result in SpacetimeDB
