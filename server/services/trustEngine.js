@@ -57,14 +57,11 @@ export class TrustEngine {
       })
       console.log('🧠 AI analysis complete')
 
-      // Codeforces Rank Verification
+      // Codeforces Rank Verification - Separate from Gemini
       let cfVerification = null
       if (codeforcesData) {
         cfVerification = codeforcesService.verifyRank(cfClaimedRank, codeforcesData)
-        if (cfVerification.verified === false && cfVerification.flag) {
-          if (!aiAnalysis.suspicionFlags) aiAnalysis.suspicionFlags = []
-          aiAnalysis.suspicionFlags.push(cfVerification.flag)
-        }
+        // Keep Codeforces separate from AI analysis - don't add to suspicionFlags
       }
 
       // CODE FILE VALIDATOR — commented out for now
@@ -389,41 +386,45 @@ export class TrustEngine {
     let explanation = ''
 
     if (scores.skills >= 75) {
-      explanation += `✅ Skills are well-verified on GitHub. `
+      explanation += ` Skills are well-verified on GitHub. `
     } else if (scores.skills >= 50) {
-      explanation += `⚠️ Some claimed skills lack GitHub verification. `
+      explanation += ` Some claimed skills lack GitHub verification. `
     } else {
-      explanation += `❌ Skills show significant inconsistencies. `
+      explanation += ` Skills show significant inconsistencies. `
     }
 
     if (scores.projects >= 75) {
-      explanation += `✅ Project portfolio demonstrates strong capability. `
+      explanation += ` Project portfolio demonstrates strong capability. `
     } else if (scores.projects >= 50) {
-      explanation += `⚠️ Limited project evidence or activity. `
+      explanation += ` Limited project evidence or activity. `
     } else {
-      explanation += `❌ Projects show major discrepancies. `
+      explanation += ` Projects show major discrepancies. `
     }
 
     if (scores.experience >= 75) {
-      explanation += `✅ Experience is well-documented and verified. `
+      explanation += ` Experience is well-documented and verified. `
     } else if (scores.experience >= 50) {
-      explanation += `⚠️ Some experience claims need verification. `
+      explanation += ` Some experience claims need verification. `
     } else {
-      explanation += `❌ Experience shows potential red flags. `
+      explanation += ` Experience shows potential red flags. `
     }
 
     if (aiAnalysis.reasoning) {
-      explanation += `\n\n🧠 AI Analysis: ${aiAnalysis.reasoning}`
+      explanation += `\n\n AI Analysis: ${aiAnalysis.reasoning}`
     }
 
+    // Codeforces Verification - Separate from AI
     if (codeforcesData) {
-      explanation += `\n\n🏆 Codeforces Verification:\n- Handle: ${codeforcesData.handle}\n- Actual Max Rank: ${codeforcesData.maxRank || 'Unknown'}\n- Max Rating: ${codeforcesData.maxRating || 'N/A'}`
+      explanation += `\n\n Codeforces Verification:`
+      explanation += `\n- Handle: ${codeforcesData.handle}`
+      explanation += `\n- Actual Max Rank: ${codeforcesData.maxRank || 'Unknown'}`
+      explanation += `\n- Max Rating: ${codeforcesData.maxRating || 'N/A'}`
       if (cfClaimedRank) {
         explanation += `\n- Resume Claimed Rank: ${cfClaimedRank}`
         if (cfVerification && cfVerification.verified === false) {
-          explanation += `\n- 🚩 Inconsistency: ${cfVerification.flag}`
+          explanation += `\n-  Inconsistency: ${cfVerification.flag}`
         } else if (cfVerification && cfVerification.verified === true) {
-          explanation += `\n- ✓ Status: Rank Consistency Verified`
+          explanation += `\n-  Status: Rank Consistency Verified`
         }
       }
     }
